@@ -1,37 +1,14 @@
-Initial commit: Yubnub MCP v2 with dashboard templates
+Add enrichment fields to job detail display
 
-Complete MCP server implementation for Yubnub job aggregation platform.
+- Extended Job interface with 8 new enrichment fields:
+  * job_type, experience_level, work_arrangement, salary_range
+  * skills (JSON), company_info, company_website, company_logo_url
 
-Core Features:
-- MCP server with stdio transport for Claude Desktop
-- Full TypeScript implementation with type safety
-- Direct API client for Yubnub Admin API
-- Static HTML dashboard template system
+- Updated formatJobDetail() to show enrichment data section
+  * Only displays for enriched jobs
+  * Parses skills JSON to show required/preferred separately
+  * Clean output - omits null/missing fields
 
-Tools Implemented:
-- list_feeds: Display all user feeds
-- get_feed: Get feed details with statistics
-- show_feed_dashboard: Interactive HTML dashboard
-- create_feed: Create new job feeds
-- delete_feed: Remove feeds and associated jobs
-- delete_jobs: Clear all jobs for a feed
-- list_jobs: View jobs with status filtering
-- get_job: Get detailed job information
-- trigger_feed_run: Start job discovery pipeline
+- Compiled successfully with TypeScript
 
-Dashboard Template:
-- Professional SaaS-style design
-- Stats grid with 4 key metrics
-- Sortable feeds table with progress bars
-- Recent jobs list with color-coded status
-- Pipeline health monitoring (4 workers)
-- Static HTML with {{variable}} placeholders
-- Complete documentation in templates/README.md
-
-Project Structure:
-- src/ - TypeScript source code
-- templates/ - HTML dashboard templates
-- build/ - Compiled JavaScript output
-- Comprehensive documentation files
-
-Ready for integration with Claude Desktop via claude_desktop_config.json
+Requires: Claude Desktop restart to load updated MCP server

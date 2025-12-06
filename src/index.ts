@@ -223,6 +223,38 @@ function formatJobDetail(job: Job): string {
   const location = job.location || 'Location not specified';
   const description = job.description || 'No description available';
 
+  // Build enrichment fields section (only if enriched)
+  let enrichmentFields = '';
+  if (job.status === 'enriched' && (job.job_type || job.experience_level || job.work_arrangement || job.salary_range || job.skills || job.company_website)) {
+    enrichmentFields = '\n## Enrichment Data\n\n';
+    
+    if (job.job_type) enrichmentFields += `- **Job Type**: ${job.job_type}\n`;
+    if (job.experience_level) enrichmentFields += `- **Experience Level**: ${job.experience_level}\n`;
+    if (job.work_arrangement) enrichmentFields += `- **Work Arrangement**: ${job.work_arrangement}\n`;
+    if (job.salary_range) enrichmentFields += `- **Salary Range**: ${job.salary_range}\n`;
+    if (job.company_website) enrichmentFields += `- **Company Website**: ${job.company_website}\n`;
+    if (job.company_logo_url) enrichmentFields += `- **Company Logo**: ${job.company_logo_url}\n`;
+    
+    if (job.skills) {
+      try {
+        const skillsData = typeof job.skills === 'string' ? JSON.parse(job.skills) : job.skills;
+        if (skillsData.required && skillsData.required.length > 0) {
+          enrichmentFields += `- **Required Skills**: ${skillsData.required.join(', ')}\n`;
+        }
+        if (skillsData.preferred && skillsData.preferred.length > 0) {
+          enrichmentFields += `- **Preferred Skills**: ${skillsData.preferred.join(', ')}\n`;
+        }
+      } catch (e) {
+        // If skills parsing fails, just show raw value
+        enrichmentFields += `- **Skills**: ${job.skills}\n`;
+      }
+    }
+    
+    if (job.company_info) {
+      enrichmentFields += `\n**Company Background**:\n${job.company_info}\n`;
+    }
+  }
+
   return `# ${title}
 
 **Company**: ${company}
@@ -232,7 +264,7 @@ function formatJobDetail(job: Job): string {
 ## Description
 
 ${description}
-
+${enrichmentFields}
 ## Details
 
 - **Job ID**: \`${job.id}\`

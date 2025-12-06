@@ -1,0 +1,10 @@
+Add MCP-UI investigation handover
+
+Comprehensive investigation plan for interactive button functionality in MCP dashboards. This document outlines research needed to determine if buttons in Claude artifacts can trigger MCP tool calls.
+
+Key questions:
+- Does @mcp-ui/components provide interactive UI elements?
+- Can artifacts communicate back to MCP server?
+- What patterns do other MCP servers use?
+
+Also includes plan for visual enhancements to dashboard template regardless of button functionality.

@@ -28,6 +28,15 @@ export interface Job {
   scraped_at: number | null;
   enriched_at: number | null;
   updated_at: number;
+  // Enrichment fields
+  job_type: string | null;
+  experience_level: string | null;
+  salary_range: string | null;
+  work_arrangement: string | null;
+  skills: string | null; // JSON string: {required: string[], preferred: string[]}
+  company_info: string | null;
+  company_website: string | null;
+  company_logo_url: string | null;
 }
 
 export interface FeedStats {
