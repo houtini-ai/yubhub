@@ -1,4 +1,4 @@
-import type { Feed, FeedDetails, Job } from './types.js';
+import type { Feed, FeedDetails, Job, FeedSchedule } from './types.js';
 
 export class YubnubApiClient {
   constructor(
@@ -44,5 +44,21 @@ export class YubnubApiClient {
 
   async getJob(jobId: string): Promise<{ job: Job }> {
     return this.request(`/api/jobs/${jobId}`);
+  }
+
+  // Schedule management
+  async getFeedSchedule(feedId: string): Promise<FeedSchedule> {
+    return this.request(`/api/feeds/${feedId}/schedule`);
+  }
+
+  async updateFeedSchedule(
+    feedId: string, 
+    enabled: boolean, 
+    intervalDays: number = 7
+  ): Promise<{ message: string; feedId: string; intervalDays: number; nextRunAt: string | null }> {
+    return this.request(`/api/feeds/${feedId}/schedule`, {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled, intervalDays }),
+    });
   }
 }

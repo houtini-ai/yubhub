@@ -13,6 +13,10 @@ export interface Feed {
   last_run_at: number | null;
   created_at: number;
   updated_at: number;
+  // Scheduler fields
+  auto_run_enabled?: number;
+  run_interval_days?: number;
+  next_run_at?: number | null;
 }
 
 export interface Job {
@@ -48,4 +52,13 @@ export interface FeedStats {
 export interface FeedDetails {
   feed: Feed;
   stats: FeedStats;
+}
+
+export interface FeedSchedule {
+  feedId: string;
+  name: string;
+  autoRunEnabled: boolean;
+  intervalDays: number;
+  nextRunAt: string | null;
+  lastRunAt: string | null;
 }
