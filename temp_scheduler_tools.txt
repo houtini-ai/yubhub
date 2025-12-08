@@ -1,0 +1,112 @@
+  // ============================================
+  // SCHEDULER TOOLS
+  // ============================================
+
+  // Get feed schedule
+  server.registerTool(
+    'get_feed_schedule',
+    {
+      title: 'Get Feed Schedule',
+      description: 'Get the automatic run schedule configuration for a feed',
+      inputSchema: z.object({
+        feedId: z.string().describe('Feed ID to check schedule for'),
+      }),
+    },
+    async ({ feedId }: { feedId: string }) => {
+      const schedule = await apiClient.getFeedSchedule(feedId);
+      
+      const nextRun = schedule.nextRunAt 
+        ? new Date(schedule.nextRunAt).toLocaleString()
+        : 'Not scheduled';
+      
+      const lastRun = schedule.lastRunAt
+        ? new Date(schedule.lastRunAt).toLocaleString()
+        : 'Never';
+      
+      const statusEmoji = schedule.autoRunEnabled ? '✅' : '⚪';
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `# Schedule for ${schedule.name}
+
+**Status**: ${statusEmoji} ${schedule.autoRunEnabled ? 'Auto-run Enabled' : 'Auto-run Disabled'}
+**Feed ID**: \`${schedule.feedId}\`
+**Interval**: Every ${schedule.intervalDays} day${schedule.intervalDays !== 1 ? 's' : ''}
+
+## Schedule Details
+- **Next Run**: ${nextRun}
+- **Last Run**: ${lastRun}
+
+${schedule.autoRunEnabled 
+  ? `This feed will automatically trigger every ${schedule.intervalDays} days.` 
+  : 'This feed requires manual triggering. Enable auto-run to schedule automatic runs.'}`,
+          },
+        ],
+      };
+    }
+  );
+
+  // Enable auto-run
+  server.registerTool(
+    'enable_feed_auto_run',
+    {
+      title: 'Enable Feed Auto-Run',
+      description: 'Enable automatic weekly runs for a feed. The feed will trigger automatically at the configured interval.',
+      inputSchema: z.object({
+        feedId: z.string().describe('Feed ID to enable auto-run for'),
+        intervalDays: z.number().int().min(1).max(168).default(7).describe('Run interval in days (default: 7 for weekly, max: 168 for ~monthly)'),
+      }),
+    },
+    async ({ feedId, intervalDays = 7 }: { feedId: string; intervalDays?: number }) => {
+      const result = await apiClient.updateFeedSchedule(feedId, true, intervalDays);
+      
+      const nextRun = result.nextRunAt
+        ? new Date(result.nextRunAt).toLocaleString()
+        : 'Not scheduled';
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `✅ Auto-run enabled successfully!
+
+**Feed ID**: \`${feedId}\`
+**Interval**: Every ${intervalDays} day${intervalDays !== 1 ? 's' : ''}
+**Next Run**: ${nextRun}
+
+This feed will now trigger automatically every ${intervalDays} days. The scheduler runs hourly and will pick up this feed when it's due.`,
+          },
+        ],
+      };
+    }
+  );
+
+  // Disable auto-run
+  server.registerTool(
+    'disable_feed_auto_run',
+    {
+      title: 'Disable Feed Auto-Run',
+      description: 'Disable automatic runs for a feed. The feed will require manual triggering after this.',
+      inputSchema: z.object({
+        feedId: z.string().describe('Feed ID to disable auto-run for'),
+      }),
+    },
+    async ({ feedId }: { feedId: string }) => {
+      await apiClient.updateFeedSchedule(feedId, false);
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `⚪ Auto-run disabled
+
+**Feed ID**: \`${feedId}\`
+
+This feed will no longer run automatically. Use "Trigger Feed Run" to run it manually.`,
+          },
+        ],
+      };
+    }
+  );

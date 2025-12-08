@@ -6,6 +6,7 @@ import { createUIResource } from '@mcp-ui/server';
 import { z } from 'zod';
 import { YubnubApiClient } from './api-client.js';
 import type { YubnubConfig, Feed, FeedStats, Job } from './types.js';
+import { generateDashboardHTML } from './dashboard-generator.js';
 
 function getConfig(): YubnubConfig {
   const userId = process.env.YUBNUB_USER_ID;
@@ -422,6 +423,59 @@ ${feedDetails.feed.example_job_url ? `**Example Job URL**: ${feedDetails.feed.ex
       
       const uiResource = await createUIResource({
         uri: `ui://yubnub/feed/${feedId}`,
+        content: {
+          type: 'rawHtml',
+          htmlString: htmlContent,
+        },
+        encoding: 'text',
+      });
+
+      return {
+        content: [uiResource],
+      };
+    }
+  );
+
+  // Show all feeds dashboard (comprehensive view)
+  server.registerTool(
+    'show_all_feeds_dashboard',
+    {
+      title: 'Show All Feeds Dashboard',
+      description: 'Display a comprehensive dashboard showing all feeds with stats, sortable columns, and XML feed links. Modern React UI with dark theme.',
+      inputSchema: z.object({}),
+    },
+    async () => {
+      // Fetch all feeds
+      const { feeds } = await apiClient.listFeeds();
+      
+      // Fetch stats for each feed (parallel requests)
+      const feedsWithStats = await Promise.all(
+        feeds.map(async (feed) => {
+          try {
+            const details = await apiClient.getFeedDetails(feed.id);
+            return {
+              ...feed,
+              stats: details.stats,
+            };
+          } catch (error) {
+            console.error(`Failed to fetch stats for feed ${feed.id}:`, error);
+            // Return feed with zero stats if fetch fails
+            return {
+              ...feed,
+              stats: { total: 0, enriched: 0, failed: 0 },
+            };
+          }
+        })
+      );
+
+      // Generate dashboard HTML
+      const htmlContent = generateDashboardHTML({
+        feeds: feedsWithStats,
+        timestamp: Date.now(),
+      });
+      
+      const uiResource = await createUIResource({
+        uri: `ui://yubnub/dashboard/all`,
         content: {
           type: 'rawHtml',
           htmlString: htmlContent,
