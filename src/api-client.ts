@@ -1,6 +1,6 @@
 import type { Feed, FeedDetails, Job, FeedSchedule } from './types.js';
 
-export class YubnubApiClient {
+export class YubhubApiClient {
   constructor(
     private baseUrl: string,
     private userId: string
@@ -29,8 +29,19 @@ export class YubnubApiClient {
     return this.request('/api/feeds');
   }
 
+  async createFeed(name: string, careersUrl: string, exampleJobUrl?: string): Promise<{ id: string; message: string }> {
+    return this.request('/api/feeds', {
+      method: 'POST',
+      body: JSON.stringify({ name, careersUrl, exampleJobUrl }),
+    });
+  }
+
   async getFeedDetails(feedId: string): Promise<FeedDetails> {
     return this.request(`/api/feeds/${feedId}`);
+  }
+
+  async deleteFeed(feedId: string): Promise<{ message: string }> {
+    return this.request(`/api/feeds/${feedId}`, { method: 'DELETE' });
   }
 
   async triggerFeedRun(feedId: string): Promise<{ message: string; feedId: string }> {
@@ -40,6 +51,10 @@ export class YubnubApiClient {
   async listJobs(feedId: string, status?: string): Promise<{ jobs: Job[]; total: number }> {
     const query = status ? `?status=${status}` : '';
     return this.request(`/api/feeds/${feedId}/jobs${query}`);
+  }
+
+  async deleteJobs(feedId: string): Promise<{ message: string }> {
+    return this.request(`/api/feeds/${feedId}/jobs`, { method: 'DELETE' });
   }
 
   async getJob(jobId: string): Promise<{ job: Job }> {
@@ -52,8 +67,8 @@ export class YubnubApiClient {
   }
 
   async updateFeedSchedule(
-    feedId: string, 
-    enabled: boolean, 
+    feedId: string,
+    enabled: boolean,
     intervalDays: number = 7
   ): Promise<{ message: string; feedId: string; intervalDays: number; nextRunAt: string | null }> {
     return this.request(`/api/feeds/${feedId}/schedule`, {

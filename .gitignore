@@ -1,9 +1,7 @@
 node_modules/
-build/
 dist/
 *.log
 .DS_Store
 .env
 .vscode/
-*.map
-*.d.ts.map
+.claude/

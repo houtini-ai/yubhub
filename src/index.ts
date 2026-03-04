@@ -1,20 +1,34 @@
 #!/usr/bin/env node
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  McpError,
+  ErrorCode,
+} from '@modelcontextprotocol/sdk/types.js';
 import { createUIResource } from '@mcp-ui/server';
-import { z } from 'zod';
-import { YubnubApiClient } from './api-client.js';
-import type { YubnubConfig, Feed, FeedStats, Job } from './types.js';
+import { YubhubApiClient } from './api-client.js';
+import type { YubhubConfig, Feed, FeedStats, Job } from './types.js';
 import { generateDashboardHTML } from './dashboard-generator.js';
 
-function getConfig(): YubnubConfig {
-  const userId = process.env.YUBNUB_USER_ID;
-  const adminApiUrl = process.env.YUBNUB_ADMIN_API_URL || 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getConfig(): YubhubConfig {
+  const userId = process.env.YUBHUB_USER_ID || process.env.YUBNUB_USER_ID;
+  const adminApiUrl = process.env.YUBHUB_ADMIN_API_URL || process.env.YUBNUB_ADMIN_API_URL ||
     'https://yubnub-admin-api-staging.fluidjobs.workers.dev';
 
   if (!userId) {
-    throw new Error('YUBNUB_USER_ID environment variable is required');
+    throw new Error('YUBHUB_USER_ID environment variable is required');
   }
 
   return { userId, adminApiUrl };
@@ -23,9 +37,14 @@ function getConfig(): YubnubConfig {
 function createFeedDashboardHTML(feed: Feed, stats: FeedStats): string {
   const status = feed.is_active ? 'Active' : 'Inactive';
   const statusClass = feed.is_active ? 'active' : 'inactive';
-  const lastRun = feed.last_run_at 
-    ? new Date(feed.last_run_at).toLocaleString() 
+  const lastRun = feed.last_run_at
+    ? new Date(feed.last_run_at).toLocaleString()
     : 'Never';
+  const enriched = stats.enriched ?? 0;
+  const failed = stats.failed ?? 0;
+  const name = escapeHtml(feed.name);
+  const careersUrl = escapeHtml(feed.careers_url);
+  const feedId = escapeHtml(feed.id);
 
   return `
 <!DOCTYPE html>
@@ -116,12 +135,12 @@ function createFeedDashboardHTML(feed: Feed, stats: FeedStats): string {
 </head>
 <body>
   <div class="dashboard">
-    <h1>${feed.name}</h1>
+    <h1>${name}</h1>
     <span class="status ${statusClass}">${status}</span>
-    
+
     <div class="meta">
-      <div><strong>Feed ID:</strong> ${feed.id}</div>
-      <div><strong>Careers URL:</strong> <a href="${feed.careers_url}" target="_blank">${feed.careers_url}</a></div>
+      <div><strong>Feed ID:</strong> ${feedId}</div>
+      <div><strong>Careers URL:</strong> <a href="${careersUrl}" target="_blank">${careersUrl}</a></div>
       <div><strong>Last Run:</strong> ${lastRun}</div>
     </div>
 
@@ -131,11 +150,11 @@ function createFeedDashboardHTML(feed: Feed, stats: FeedStats): string {
         <div class="stat-label">Total Jobs</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">${stats.enriched}</div>
+        <div class="stat-value">${enriched}</div>
         <div class="stat-label">Enriched</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">${stats.failed}</div>
+        <div class="stat-value">${failed}</div>
         <div class="stat-label">Failed</div>
       </div>
     </div>
@@ -151,7 +170,7 @@ function createFeedDashboardHTML(feed: Feed, stats: FeedStats): string {
         type: 'tool',
         payload: {
           toolName: 'trigger_feed_run',
-          params: { feedId: '${feed.id}' }
+          params: { feedId: '${feedId}' }
         }
       }, '*');
     }
@@ -168,10 +187,10 @@ function formatFeedsList(feeds: Feed[]): string {
 
   const feedsList = feeds.map(feed => {
     const status = feed.is_active ? '✅ Active' : '⚪ Inactive';
-    const lastRun = feed.last_run_at 
-      ? new Date(feed.last_run_at).toLocaleString() 
+    const lastRun = feed.last_run_at
+      ? new Date(feed.last_run_at).toLocaleString()
       : 'Never run';
-    
+
     return `### ${feed.name}
 - **ID**: \`${feed.id}\`
 - **Status**: ${status}
@@ -224,18 +243,17 @@ function formatJobDetail(job: Job): string {
   const location = job.location || 'Location not specified';
   const description = job.description || 'No description available';
 
-  // Build enrichment fields section (only if enriched)
   let enrichmentFields = '';
   if (job.status === 'enriched' && (job.job_type || job.experience_level || job.work_arrangement || job.salary_range || job.skills || job.company_website)) {
     enrichmentFields = '\n## Enrichment Data\n\n';
-    
+
     if (job.job_type) enrichmentFields += `- **Job Type**: ${job.job_type}\n`;
     if (job.experience_level) enrichmentFields += `- **Experience Level**: ${job.experience_level}\n`;
     if (job.work_arrangement) enrichmentFields += `- **Work Arrangement**: ${job.work_arrangement}\n`;
     if (job.salary_range) enrichmentFields += `- **Salary Range**: ${job.salary_range}\n`;
     if (job.company_website) enrichmentFields += `- **Company Website**: ${job.company_website}\n`;
     if (job.company_logo_url) enrichmentFields += `- **Company Logo**: ${job.company_logo_url}\n`;
-    
+
     if (job.skills) {
       try {
         const skillsData = typeof job.skills === 'string' ? JSON.parse(job.skills) : job.skills;
@@ -246,11 +264,10 @@ function formatJobDetail(job: Job): string {
           enrichmentFields += `- **Preferred Skills**: ${skillsData.preferred.join(', ')}\n`;
         }
       } catch (e) {
-        // If skills parsing fails, just show raw value
         enrichmentFields += `- **Skills**: ${job.skills}\n`;
       }
     }
-    
+
     if (job.company_info) {
       enrichmentFields += `\n**Company Background**:\n${job.company_info}\n`;
     }
@@ -278,80 +295,331 @@ ${job.enriched_at ? `- **Enriched**: ${new Date(job.enriched_at).toLocaleString(
 `;
 }
 
-async function main() {
-  const config = getConfig();
-  const apiClient = new YubnubApiClient(config.adminApiUrl, config.userId);
+class YubhubMCPServer {
+  private server: Server;
+  private apiClient: YubhubApiClient;
 
-  const server = new McpServer({
-    name: 'yubnub-mcp-v2',
-    version: '2.1.0',
-  });
+  constructor() {
+    const config = getConfig();
+    this.apiClient = new YubhubApiClient(config.adminApiUrl, config.userId);
 
-  // ============================================
-  // FEED TOOLS
-  // ============================================
-
-  // List all feeds
-  server.registerTool(
-    'list_feeds',
-    {
-      title: 'List Feeds',
-      description: 'Get all your job feeds',
-      inputSchema: z.object({}),
-    },
-    async () => {
-      const { feeds } = await apiClient.listFeeds();
-      
-      return {
-        content: [
-          {
-            type: 'text',
-            text: formatFeedsList(feeds),
-          },
-        ],
-      };
-    }
-  );
-
-  // Create feed
-  server.registerTool(
-    'create_feed',
-    {
-      title: 'Create Feed',
-      description: 'Create a new job feed for monitoring career pages',
-      inputSchema: z.object({
-        name: z.string().min(1).max(100).describe('Feed name (e.g., "Mercedes-AMG F1")'),
-        careersUrl: z.string().url().describe('Careers page URL to monitor'),
-        exampleJobUrl: z.string().url().optional().describe('Example job posting URL (optional)'),
-      }),
-    },
-    async ({ name, careersUrl, exampleJobUrl }: { name: string; careersUrl: string; exampleJobUrl?: string }) => {
-      // Call API (we need to add this method to the API client)
-      const response = await fetch(`${apiClient['baseUrl']}/api/feeds`, {
-        method: 'POST',
-        headers: {
-          'X-User-ID': apiClient['userId'],
-          'Content-Type': 'application/json',
+    this.server = new Server(
+      {
+        name: 'yubhub-mcp',
+        version: '2.2.0',
+      },
+      {
+        capabilities: {
+          tools: {},
         },
-        body: JSON.stringify({
-          name,
-          careersUrl,
-          exampleJobUrl,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to create feed: ${response.status} ${error}`);
       }
+    );
 
-      const result = await response.json() as { id: string; message: string };
+    this.setupToolHandlers();
+    this.setupErrorHandling();
+  }
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `✅ Feed created successfully!
+  private setupErrorHandling(): void {
+    this.server.onerror = (error) => console.error('[Yubhub MCP Error]', error);
+    process.on('SIGINT', async () => {
+      await this.server.close();
+      process.exit(0);
+    });
+  }
+
+  private setupToolHandlers(): void {
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: [
+        {
+          name: 'list_feeds',
+          description: 'Get all your job feeds',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'create_feed',
+          description: 'Create a new job feed for monitoring career pages',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Feed name (e.g., "Mercedes-AMG F1")',
+                minLength: 1,
+                maxLength: 100
+              },
+              careersUrl: {
+                type: 'string',
+                description: 'Careers page URL to monitor',
+                format: 'uri'
+              },
+              exampleJobUrl: {
+                type: 'string',
+                description: 'Example job posting URL (optional)',
+                format: 'uri'
+              }
+            },
+            required: ['name', 'careersUrl'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_feed',
+          description: 'Get detailed information about a specific feed including statistics',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to retrieve'
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'show_feed_dashboard',
+          description: 'Display an interactive dashboard for monitoring a job feed',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to display (e.g., feed_92afb77d)'
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'show_all_feeds_dashboard',
+          description: 'Display a comprehensive dashboard showing all feeds with stats, sortable columns, and XML feed links. Modern React UI with dark theme.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'trigger_feed_run',
+          description: 'Start job discovery for a specific feed',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to run'
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'delete_feed',
+          description: 'Delete a feed and all associated jobs. This action cannot be undone.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to delete'
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'delete_jobs',
+          description: 'Delete all jobs for a specific feed. This action cannot be undone.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID whose jobs should be deleted'
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_feed_schedule',
+          description: 'Get the automatic run schedule configuration for a feed. Shows if auto-run is enabled, the run interval, and when the next automatic run is scheduled.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to check schedule for'
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'enable_feed_auto_run',
+          description: 'Enable automatic weekly runs for a feed. The scheduler worker runs hourly and will automatically trigger this feed at the configured interval (default: 7 days for weekly runs). Great for keeping job feeds updated without manual intervention.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to enable auto-run for'
+              },
+              intervalDays: {
+                type: 'integer',
+                description: 'Run interval in days (default: 7 for weekly, max: 168 for ~monthly)',
+                minimum: 1,
+                maximum: 168,
+                default: 7
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'disable_feed_auto_run',
+          description: 'Disable automatic runs for a feed. The feed will require manual triggering after this. Use this when you want full control over when a feed runs.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to disable auto-run for'
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'list_jobs',
+          description: 'Get all jobs for a specific feed, optionally filtered by status',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to list jobs for'
+              },
+              status: {
+                type: 'string',
+                description: 'Filter by job status',
+                enum: ['discovered', 'scraped', 'enriched', 'failed']
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_job',
+          description: 'Get detailed information about a specific job',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              jobId: {
+                type: 'string',
+                description: 'Job ID to retrieve'
+              }
+            },
+            required: ['jobId'],
+            additionalProperties: false
+          }
+        }
+      ]
+    }));
+
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      try {
+        switch (name) {
+          case 'list_feeds':
+            return await this.listFeeds();
+
+          case 'create_feed':
+            return await this.createFeed(args as any);
+
+          case 'get_feed':
+            return await this.getFeed(args as any);
+
+          case 'show_feed_dashboard':
+            return await this.showFeedDashboard(args as any);
+
+          case 'show_all_feeds_dashboard':
+            return await this.showAllFeedsDashboard();
+
+          case 'trigger_feed_run':
+            return await this.triggerFeedRun(args as any);
+
+          case 'delete_feed':
+            return await this.deleteFeed(args as any);
+
+          case 'delete_jobs':
+            return await this.deleteJobs(args as any);
+
+          case 'get_feed_schedule':
+            return await this.getFeedSchedule(args as any);
+
+          case 'enable_feed_auto_run':
+            return await this.enableFeedAutoRun(args as any);
+
+          case 'disable_feed_auto_run':
+            return await this.disableFeedAutoRun(args as any);
+
+          case 'list_jobs':
+            return await this.listJobs(args as any);
+
+          case 'get_job':
+            return await this.getJob(args as any);
+
+          default:
+            throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+        }
+      } catch (error) {
+        if (error instanceof McpError) {
+          throw error;
+        }
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
+    });
+  }
+
+  private async listFeeds() {
+    const { feeds } = await this.apiClient.listFeeds();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatFeedsList(feeds),
+        },
+      ],
+    };
+  }
+
+  private async createFeed({ name, careersUrl, exampleJobUrl }: { name: string; careersUrl: string; exampleJobUrl?: string }) {
+    const result = await this.apiClient.createFeed(name, careersUrl, exampleJobUrl);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Feed created successfully!
 
 **Feed ID**: \`${result.id}\`
 **Name**: ${name}
@@ -359,26 +627,17 @@ async function main() {
 ${exampleJobUrl ? `**Example Job URL**: ${exampleJobUrl}` : ''}
 
 You can now trigger a run with: "Trigger a run for ${result.id}"`,
-          },
-        ],
-      };
-    }
-  );
+        },
+      ],
+    };
+  }
 
-  // Get feed details
-  server.registerTool(
-    'get_feed',
-    {
-      title: 'Get Feed Details',
-      description: 'Get detailed information about a specific feed including statistics',
-      inputSchema: z.object({
-        feedId: z.string().describe('Feed ID to retrieve'),
-      }),
-    },
-    async ({ feedId }: { feedId: string }) => {
-      const feedDetails = await apiClient.getFeedDetails(feedId);
-      
-      const markdown = `# ${feedDetails.feed.name}
+  private async getFeed({ feedId }: { feedId: string }) {
+    const feedDetails = await this.apiClient.getFeedDetails(feedId);
+    const enriched = feedDetails.stats.enriched ?? 0;
+    const failed = feedDetails.stats.failed ?? 0;
+
+    const markdown = `# ${feedDetails.feed.name}
 
 **Status**: ${feedDetails.feed.is_active ? '✅ Active' : '⚪ Inactive'}
 **Feed ID**: \`${feedDetails.feed.id}\`
@@ -387,255 +646,154 @@ ${feedDetails.feed.example_job_url ? `**Example Job URL**: ${feedDetails.feed.ex
 
 ## Statistics
 - **Total Jobs**: ${feedDetails.stats.total}
-- **Enriched**: ${feedDetails.stats.enriched} ✅
-- **Failed**: ${feedDetails.stats.failed} ❌
+- **Enriched**: ${enriched} ✅
+- **Failed**: ${failed} ❌
 
 **Last Run**: ${feedDetails.feed.last_run_at ? new Date(feedDetails.feed.last_run_at).toLocaleString() : 'Never'}
 **Created**: ${new Date(feedDetails.feed.created_at).toLocaleString()}
 **Updated**: ${new Date(feedDetails.feed.updated_at).toLocaleString()}
 `;
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: markdown,
-          },
-        ],
-      };
-    }
-  );
-
-  // Show feed dashboard (with UI)
-  server.registerTool(
-    'show_feed_dashboard',
-    {
-      title: 'Show Feed Dashboard',
-      description: 'Display an interactive dashboard for monitoring a job feed',
-      inputSchema: z.object({
-        feedId: z.string().describe('Feed ID to display (e.g., feed_92afb77d)'),
-      }),
-    },
-    async ({ feedId }: { feedId: string }) => {
-      const feedDetails = await apiClient.getFeedDetails(feedId);
-      
-      const htmlContent = createFeedDashboardHTML(feedDetails.feed, feedDetails.stats);
-      
-      const uiResource = await createUIResource({
-        uri: `ui://yubnub/feed/${feedId}`,
-        content: {
-          type: 'rawHtml',
-          htmlString: htmlContent,
+    return {
+      content: [
+        {
+          type: 'text',
+          text: markdown,
         },
-        encoding: 'text',
-      });
+      ],
+    };
+  }
 
-      return {
-        content: [uiResource],
-      };
-    }
-  );
+  private async showFeedDashboard({ feedId }: { feedId: string }) {
+    const feedDetails = await this.apiClient.getFeedDetails(feedId);
 
-  // Show all feeds dashboard (comprehensive view)
-  server.registerTool(
-    'show_all_feeds_dashboard',
-    {
-      title: 'Show All Feeds Dashboard',
-      description: 'Display a comprehensive dashboard showing all feeds with stats, sortable columns, and XML feed links. Modern React UI with dark theme.',
-      inputSchema: z.object({}),
-    },
-    async () => {
-      // Fetch all feeds
-      const { feeds } = await apiClient.listFeeds();
-      
-      // Fetch stats for each feed (parallel requests)
-      const feedsWithStats = await Promise.all(
-        feeds.map(async (feed) => {
-          try {
-            const details = await apiClient.getFeedDetails(feed.id);
-            return {
-              ...feed,
-              stats: details.stats,
-            };
-          } catch (error) {
-            console.error(`Failed to fetch stats for feed ${feed.id}:`, error);
-            // Return feed with zero stats if fetch fails
-            return {
-              ...feed,
-              stats: { total: 0, enriched: 0, failed: 0 },
-            };
-          }
-        })
-      );
+    const htmlContent = createFeedDashboardHTML(feedDetails.feed, feedDetails.stats);
 
-      // Generate dashboard HTML
-      const htmlContent = generateDashboardHTML({
-        feeds: feedsWithStats,
-        timestamp: Date.now(),
-      });
-      
-      const uiResource = await createUIResource({
-        uri: `ui://yubnub/dashboard/all`,
-        content: {
-          type: 'rawHtml',
-          htmlString: htmlContent,
+    const uiResource = await createUIResource({
+      uri: `ui://yubhub/feed/${feedId}`,
+      content: {
+        type: 'rawHtml',
+        htmlString: htmlContent,
+      },
+      encoding: 'text',
+    });
+
+    return {
+      content: [uiResource],
+    };
+  }
+
+  private async showAllFeedsDashboard() {
+    const { feeds } = await this.apiClient.listFeeds();
+
+    const feedsWithStats = await Promise.all(
+      feeds.map(async (feed) => {
+        try {
+          const details = await this.apiClient.getFeedDetails(feed.id);
+          return {
+            ...feed,
+            stats: details.stats,
+          };
+        } catch (error) {
+          console.error(`Failed to fetch stats for feed ${feed.id}:`, error);
+          return {
+            ...feed,
+            stats: { total: 0, enriched: 0, failed: 0 },
+          };
+        }
+      })
+    );
+
+    const htmlContent = generateDashboardHTML({
+      feeds: feedsWithStats,
+      timestamp: Date.now(),
+    });
+
+    const uiResource = await createUIResource({
+      uri: `ui://yubhub/dashboard/all`,
+      content: {
+        type: 'rawHtml',
+        htmlString: htmlContent,
+      },
+      encoding: 'text',
+    });
+
+    return {
+      content: [uiResource],
+    };
+  }
+
+  private async triggerFeedRun({ feedId }: { feedId: string }) {
+    await this.apiClient.triggerFeedRun(feedId);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Feed run triggered successfully for ${feedId}\n\nJobs will be discovered and processed in the background.`,
         },
-        encoding: 'text',
-      });
+      ],
+    };
+  }
 
-      return {
-        content: [uiResource],
-      };
-    }
-  );
+  private async deleteFeed({ feedId }: { feedId: string }) {
+    await this.apiClient.getFeedDetails(feedId);
+    await this.apiClient.deleteFeed(feedId);
 
-  // Trigger feed run
-  server.registerTool(
-    'trigger_feed_run',
-    {
-      title: 'Trigger Feed Run',
-      description: 'Start job discovery for a specific feed',
-      inputSchema: z.object({
-        feedId: z.string().describe('Feed ID to run'),
-      }),
-    },
-    async ({ feedId }: { feedId: string }) => {
-      await apiClient.triggerFeedRun(feedId);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `✅ Feed run triggered successfully for ${feedId}\n\nJobs will be discovered and processed in the background.`,
-          },
-        ],
-      };
-    }
-  );
-
-  // Delete feed
-  server.registerTool(
-    'delete_feed',
-    {
-      title: 'Delete Feed',
-      description: 'Delete a feed and all associated jobs. This action cannot be undone.',
-      inputSchema: z.object({
-        feedId: z.string().describe('Feed ID to delete'),
-      }),
-    },
-    async ({ feedId }: { feedId: string }) => {
-      // First verify the feed exists and belongs to the user
-      await apiClient.getFeedDetails(feedId);
-      
-      // Delete the feed
-      const response = await fetch(`${apiClient['baseUrl']}/api/feeds/${feedId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-User-ID': apiClient['userId'],
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to delete feed: ${response.status} ${error}`);
-      }
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `✅ Feed deleted successfully
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Feed deleted successfully
 
 **Feed ID**: \`${feedId}\`
 
 All associated jobs have been removed. This action cannot be undone.`,
-          },
-        ],
-      };
-    }
-  );
-
-  // Delete jobs for a feed
-  server.registerTool(
-    'delete_jobs',
-    {
-      title: 'Delete Jobs',
-      description: 'Delete all jobs for a specific feed. This action cannot be undone.',
-      inputSchema: z.object({
-        feedId: z.string().describe('Feed ID whose jobs should be deleted'),
-      }),
-    },
-    async ({ feedId }: { feedId: string }) => {
-      // First verify the feed exists and belongs to the user (security check)
-      const feedDetails = await apiClient.getFeedDetails(feedId);
-      
-      // Get current job count before deletion
-      const jobsBefore = feedDetails.stats.total;
-      
-      // Delete jobs for this feed
-      const response = await fetch(`${apiClient['baseUrl']}/api/feeds/${feedId}/jobs`, {
-        method: 'DELETE',
-        headers: {
-          'X-User-ID': apiClient['userId'],
-          'Content-Type': 'application/json',
         },
-      });
+      ],
+    };
+  }
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to delete jobs: ${response.status} ${error}`);
-      }
+  private async deleteJobs({ feedId }: { feedId: string }) {
+    const feedDetails = await this.apiClient.getFeedDetails(feedId);
+    const jobsBefore = feedDetails.stats.total;
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `✅ Jobs deleted successfully
+    await this.apiClient.deleteJobs(feedId);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Jobs deleted successfully
 
 **Feed**: ${feedDetails.feed.name}
 **Feed ID**: \`${feedId}\`
 **Jobs Deleted**: ${jobsBefore}
 
 All jobs for this feed have been removed. This action cannot be undone.`,
-          },
-        ],
-      };
-    }
-  );
+        },
+      ],
+    };
+  }
 
-  // ============================================
-  // SCHEDULER TOOLS
-  // ============================================
+  private async getFeedSchedule({ feedId }: { feedId: string }) {
+    const schedule = await this.apiClient.getFeedSchedule(feedId);
 
-  // Get feed schedule
-  server.registerTool(
-    'get_feed_schedule',
-    {
-      title: 'Get Feed Schedule',
-      description: 'Get the automatic run schedule configuration for a feed. Shows if auto-run is enabled, the run interval, and when the next automatic run is scheduled.',
-      inputSchema: z.object({
-        feedId: z.string().describe('Feed ID to check schedule for'),
-      }),
-    },
-    async ({ feedId }: { feedId: string }) => {
-      const schedule = await apiClient.getFeedSchedule(feedId);
-      
-      const nextRun = schedule.nextRunAt 
-        ? new Date(schedule.nextRunAt).toLocaleString()
-        : 'Not scheduled';
-      
-      const lastRun = schedule.lastRunAt
-        ? new Date(schedule.lastRunAt).toLocaleString()
-        : 'Never';
-      
-      const statusEmoji = schedule.autoRunEnabled ? '✅' : '⚪';
-      
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Schedule for ${schedule.name}
+    const nextRun = schedule.nextRunAt
+      ? new Date(schedule.nextRunAt).toLocaleString()
+      : 'Not scheduled';
+
+    const lastRun = schedule.lastRunAt
+      ? new Date(schedule.lastRunAt).toLocaleString()
+      : 'Never';
+
+    const statusEmoji = schedule.autoRunEnabled ? '✅' : '⚪';
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `# Schedule for ${schedule.name}
 
 **Status**: ${statusEmoji} ${schedule.autoRunEnabled ? 'Auto-run Enabled' : 'Auto-run Disabled'}
 **Feed ID**: \`${schedule.feedId}\`
@@ -645,134 +803,90 @@ All jobs for this feed have been removed. This action cannot be undone.`,
 - **Next Run**: ${nextRun}
 - **Last Run**: ${lastRun}
 
-${schedule.autoRunEnabled 
-  ? `This feed will automatically trigger every ${schedule.intervalDays} days. The scheduler runs hourly and will pick up this feed when it's due.` 
+${schedule.autoRunEnabled
+  ? `This feed will automatically trigger every ${schedule.intervalDays} days. The scheduler runs hourly and will pick up this feed when it's due.`
   : 'This feed requires manual triggering. Enable auto-run to schedule automatic runs.'}`,
-          },
-        ],
-      };
-    }
-  );
+        },
+      ],
+    };
+  }
 
-  // Enable auto-run
-  server.registerTool(
-    'enable_feed_auto_run',
-    {
-      title: 'Enable Feed Auto-Run',
-      description: 'Enable automatic weekly runs for a feed. The scheduler worker runs hourly and will automatically trigger this feed at the configured interval (default: 7 days for weekly runs). Great for keeping job feeds updated without manual intervention.',
-      inputSchema: z.object({
-        feedId: z.string().describe('Feed ID to enable auto-run for'),
-        intervalDays: z.number().int().min(1).max(168).default(7).describe('Run interval in days (default: 7 for weekly, max: 168 for ~monthly)'),
-      }),
-    },
-    async ({ feedId, intervalDays = 7 }: { feedId: string; intervalDays?: number }) => {
-      const result = await apiClient.updateFeedSchedule(feedId, true, intervalDays);
-      
-      const nextRun = result.nextRunAt
-        ? new Date(result.nextRunAt).toLocaleString()
-        : 'Not scheduled';
-      
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `✅ Auto-run enabled successfully!
+  private async enableFeedAutoRun({ feedId, intervalDays = 7 }: { feedId: string; intervalDays?: number }) {
+    const result = await this.apiClient.updateFeedSchedule(feedId, true, intervalDays);
+
+    const nextRun = result.nextRunAt
+      ? new Date(result.nextRunAt).toLocaleString()
+      : 'Not scheduled';
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Auto-run enabled successfully!
 
 **Feed ID**: \`${feedId}\`
 **Interval**: Every ${intervalDays} day${intervalDays !== 1 ? 's' : ''}
 **Next Run**: ${nextRun}
 
 This feed will now trigger automatically every ${intervalDays} days. The scheduler runs hourly and will pick up this feed when it's due.`,
-          },
-        ],
-      };
-    }
-  );
+        },
+      ],
+    };
+  }
 
-  // Disable auto-run
-  server.registerTool(
-    'disable_feed_auto_run',
-    {
-      title: 'Disable Feed Auto-Run',
-      description: 'Disable automatic runs for a feed. The feed will require manual triggering after this. Use this when you want full control over when a feed runs.',
-      inputSchema: z.object({
-        feedId: z.string().describe('Feed ID to disable auto-run for'),
-      }),
-    },
-    async ({ feedId }: { feedId: string }) => {
-      await apiClient.updateFeedSchedule(feedId, false);
-      
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `⚪ Auto-run disabled
+  private async disableFeedAutoRun({ feedId }: { feedId: string }) {
+    await this.apiClient.updateFeedSchedule(feedId, false);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `⚪ Auto-run disabled
 
 **Feed ID**: \`${feedId}\`
 
 This feed will no longer run automatically. Use "Trigger Feed Run" to run it manually.`,
-          },
-        ],
-      };
-    }
-  );
+        },
+      ],
+    };
+  }
 
-  // ============================================
-  // JOB TOOLS
-  // ============================================
+  private async listJobs({ feedId, status }: { feedId: string; status?: string }) {
+    const feedDetails = await this.apiClient.getFeedDetails(feedId);
+    const { jobs } = await this.apiClient.listJobs(feedId, status);
 
-  // List jobs for a feed
-  server.registerTool(
-    'list_jobs',
-    {
-      title: 'List Jobs',
-      description: 'Get all jobs for a specific feed, optionally filtered by status',
-      inputSchema: z.object({
-        feedId: z.string().describe('Feed ID to list jobs for'),
-        status: z.enum(['discovered', 'scraped', 'enriched', 'failed']).optional().describe('Filter by job status'),
-      }),
-    },
-    async ({ feedId, status }: { feedId: string; status?: string }) => {
-      const feedDetails = await apiClient.getFeedDetails(feedId);
-      const { jobs } = await apiClient.listJobs(feedId, status);
-      
-      return {
-        content: [
-          {
-            type: 'text',
-            text: formatJobsList(jobs, feedDetails.feed.name),
-          },
-        ],
-      };
-    }
-  );
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatJobsList(jobs, feedDetails.feed.name),
+        },
+      ],
+    };
+  }
 
-  // Get job details
-  server.registerTool(
-    'get_job',
-    {
-      title: 'Get Job Details',
-      description: 'Get detailed information about a specific job',
-      inputSchema: z.object({
-        jobId: z.string().describe('Job ID to retrieve'),
-      }),
-    },
-    async ({ jobId }: { jobId: string }) => {
-      const { job } = await apiClient.getJob(jobId);
-      
-      return {
-        content: [
-          {
-            type: 'text',
-            text: formatJobDetail(job),
-          },
-        ],
-      };
-    }
-  );
+  private async getJob({ jobId }: { jobId: string }) {
+    const { job } = await this.apiClient.getJob(jobId);
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: formatJobDetail(job),
+        },
+      ],
+    };
+  }
+
+  async run() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+  }
+}
+
+async function main() {
+  const server = new YubhubMCPServer();
+  await server.run();
 }
 
 main().catch((error) => {

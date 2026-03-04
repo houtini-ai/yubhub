@@ -1,6 +1,6 @@
 /**
- * Dashboard Generator for Yubnub MCP
- * 
+ * Dashboard Generator for Yubhub MCP
+ *
  * Generates a modern, self-contained React dashboard HTML
  * Uses CDN imports for React, Tailwind, and Lucide icons
  */
@@ -20,19 +20,19 @@ function formatRelativeTime(timestamp: number): string {
   const now = Date.now();
   const diff = now - timestamp;
   const minutes = Math.floor(diff / 60000);
-  
+
   if (minutes < 1) return 'Just now';
   if (minutes < 60) return `${minutes}m ago`;
-  
+
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
-  
+
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
-  
+
   const weeks = Math.floor(days / 7);
   if (weeks < 4) return `${weeks}w ago`;
-  
+
   return new Date(timestamp).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -49,8 +49,8 @@ export function generateDashboardHTML(data: DashboardData): string {
   const totalStats = data.feeds.reduce(
     (acc, feed) => ({
       total: acc.total + feed.stats.total,
-      enriched: acc.enriched + feed.stats.enriched,
-      failed: acc.failed + feed.stats.failed,
+      enriched: acc.enriched + (feed.stats.enriched ?? 0),
+      failed: acc.failed + (feed.stats.failed ?? 0),
     }),
     { total: 0, enriched: 0, failed: 0 }
   );
@@ -63,11 +63,11 @@ export function generateDashboardHTML(data: DashboardData): string {
     name: feed.name,
     careersUrl: feed.careers_url,
     total: feed.stats.total,
-    enriched: feed.stats.enriched,
-    failed: feed.stats.failed,
+    enriched: feed.stats.enriched ?? 0,
+    failed: feed.stats.failed ?? 0,
     lastRun: feed.last_run_at || 0,
     lastRunFormatted: feed.last_run_at ? formatRelativeTime(feed.last_run_at) : 'Never',
-    successRate: calculateSuccessRate(feed.stats.enriched, feed.stats.total),
+    successRate: calculateSuccessRate(feed.stats.enriched ?? 0, feed.stats.total),
   }));
 
   return `<!DOCTYPE html>
@@ -75,7 +75,7 @@ export function generateDashboardHTML(data: DashboardData): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yubnub Dashboard</title>
+  <title>Yubhub Dashboard</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -91,7 +91,7 @@ export function generateDashboardHTML(data: DashboardData): string {
 </head>
 <body>
   <div id="root"></div>
-  
+
   <script type="text/babel">
     const { useState, useMemo } = React;
 
@@ -181,7 +181,7 @@ export function generateDashboardHTML(data: DashboardData): string {
             default:
               return 0;
           }
-          
+
           if (typeof aVal === 'string') {
             return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
           }
@@ -214,10 +214,10 @@ export function generateDashboardHTML(data: DashboardData): string {
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-100 mb-2">Yubnub Feed Dashboard</h1>
-                  <p className="text-slate-400">Motorsport job aggregation pipeline</p>
+                  <h1 className="text-3xl font-bold text-slate-100 mb-2">Yubhub Feed Dashboard</h1>
+                  <p className="text-slate-400">Job feed aggregation pipeline</p>
                 </div>
-                <button 
+                <button
                   onClick={() => window.location.reload()}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                 >
@@ -265,37 +265,37 @@ export function generateDashboardHTML(data: DashboardData): string {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-slate-800 border-b border-slate-700">
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-750"
                         onClick={() => handleSort('name')}
                       >
                         Feed Name <SortIndicator column="name" />
                       </th>
-                      <th 
+                      <th
                         className="text-center p-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-750"
                         onClick={() => handleSort('total')}
                       >
                         Total <SortIndicator column="total" />
                       </th>
-                      <th 
+                      <th
                         className="text-center p-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-750"
                         onClick={() => handleSort('enriched')}
                       >
                         Enriched <SortIndicator column="enriched" />
                       </th>
-                      <th 
+                      <th
                         className="text-center p-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-750"
                         onClick={() => handleSort('failed')}
                       >
                         Failed <SortIndicator column="failed" />
                       </th>
-                      <th 
+                      <th
                         className="text-center p-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-750"
                         onClick={() => handleSort('successRate')}
                       >
                         Success <SortIndicator column="successRate" />
                       </th>
-                      <th 
+                      <th
                         className="text-left p-4 text-sm font-semibold text-slate-300 cursor-pointer hover:bg-slate-750"
                         onClick={() => handleSort('lastRun')}
                       >
@@ -309,9 +309,9 @@ export function generateDashboardHTML(data: DashboardData): string {
                   <tbody>
                     {sortedFeeds.map((feed, index) => {
                       const hasJobs = feed.total > 0;
-                      
+
                       return (
-                        <tr 
+                        <tr
                           key={feed.id}
                           className={\`border-b border-slate-800 hover:bg-slate-800/50 transition-colors \${
                             index % 2 === 0 ? 'bg-slate-900' : 'bg-slate-900/50'
@@ -343,8 +343,8 @@ export function generateDashboardHTML(data: DashboardData): string {
                           </td>
                           <td className="p-4 text-center">
                             <span className={\`font-semibold \${
-                              feed.successRate >= 90 ? 'text-green-400' : 
-                              feed.successRate >= 70 ? 'text-yellow-400' : 
+                              feed.successRate >= 90 ? 'text-green-400' :
+                              feed.successRate >= 70 ? 'text-yellow-400' :
                               'text-red-400'
                             }\`}>
                               {feed.successRate}%
@@ -369,7 +369,7 @@ export function generateDashboardHTML(data: DashboardData): string {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={\`px-3 py-1 text-xs font-medium rounded transition-colors \${
-                                  hasJobs 
+                                  hasJobs
                                     ? 'bg-blue-600 hover:bg-blue-700 text-white'
                                     : 'bg-slate-700 text-slate-500 cursor-not-allowed'
                                 }\`}
@@ -390,7 +390,7 @@ export function generateDashboardHTML(data: DashboardData): string {
 
             {/* Footer */}
             <div className="mt-6 text-center text-sm text-slate-500">
-              <p>Yubnub v2 • Staging Environment</p>
+              <p>Yubhub MCP • Staging Environment</p>
               <p className="mt-1">Last updated: {new Date(${data.timestamp}).toLocaleString('en-GB')}</p>
             </div>
           </div>
@@ -398,7 +398,8 @@ export function generateDashboardHTML(data: DashboardData): string {
       );
     }
 
-    ReactDOM.render(<Dashboard />, document.getElementById('root'));
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<Dashboard />);
   </script>
 </body>
 </html>`;

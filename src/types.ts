@@ -1,4 +1,4 @@
-export interface YubnubConfig {
+export interface YubhubConfig {
   userId: string;
   adminApiUrl: string;
 }
@@ -45,8 +45,8 @@ export interface Job {
 
 export interface FeedStats {
   total: number;
-  enriched: number;
-  failed: number;
+  enriched: number | null;
+  failed: number | null;
 }
 
 export interface FeedDetails {

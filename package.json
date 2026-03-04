@@ -1,10 +1,10 @@
 {
-  "name": "yubnub-mcp-v2",
-  "version": "2.0.0",
-  "description": "Yubnub MCP server with MCP-UI components",
+  "name": "yubhub-mcp",
+  "version": "2.2.0",
+  "description": "Yubhub MCP server for job feed management with dashboard UI",
   "type": "module",
   "bin": {
-    "yubnub-mcp": "./build/index.js"
+    "yubhub-mcp": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
