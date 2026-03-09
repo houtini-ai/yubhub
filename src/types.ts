@@ -1,6 +1,7 @@
 export interface YubhubConfig {
   userId: string;
   adminApiUrl: string;
+  apiKey?: string;
 }
 
 export interface Feed {
@@ -12,6 +13,7 @@ export interface Feed {
   is_active: number;
   last_run_at: number | null;
   created_at: number;
+  tag: string | null;
   updated_at: number;
   // Scheduler fields
   auto_run_enabled?: number;
@@ -61,4 +63,48 @@ export interface FeedSchedule {
   intervalDays: number;
   nextRunAt: string | null;
   lastRunAt: string | null;
+}
+
+// Stats types (public endpoints)
+export interface StatsOverview {
+  totalJobs: number;
+  totalCompanies: number;
+  totalFeeds: number;
+}
+
+export interface TopCompany {
+  company: string;
+  total_jobs: number;
+  jobs_last_7d: number;
+  jobs_last_30d: number;
+}
+
+export interface CategoryStat {
+  category: string;
+  count: number;
+  entry_count: number;
+  mid_count: number;
+  senior_count: number;
+}
+
+export interface TitleStat {
+  title: string;
+  count: number;
+}
+
+export interface TitleTrend {
+  title: string;
+  recent_count: number;
+  prior_count: number;
+  change: number;
+}
+
+export interface ArrangementStat {
+  arrangement: string;
+  count: number;
+}
+
+export interface ExperienceStat {
+  level: string;
+  count: number;
 }

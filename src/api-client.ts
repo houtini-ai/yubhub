@@ -1,18 +1,25 @@
-import type { Feed, FeedDetails, Job, FeedSchedule } from './types.js';
+import type { Feed, FeedDetails, Job, FeedSchedule, StatsOverview, TopCompany, CategoryStat, TitleStat, TitleTrend, ArrangementStat, ExperienceStat } from './types.js';
 
 export class YubhubApiClient {
   constructor(
     private baseUrl: string,
-    private userId: string
+    private userId: string,
+    private apiKey?: string
   ) {}
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-User-ID': this.userId,
+    };
+    if (this.apiKey) {
+      headers['X-API-Key'] = this.apiKey;
+    }
     const response = await fetch(url, {
       ...options,
       headers: {
-        'X-User-ID': this.userId,
-        'Content-Type': 'application/json',
+        ...headers,
         ...options.headers,
       },
     });
@@ -40,6 +47,13 @@ export class YubhubApiClient {
     return this.request(`/api/feeds/${feedId}`);
   }
 
+  async updateFeed(feedId: string, data: { name?: string; tag?: string | null; careersUrl?: string; exampleJobUrl?: string | null }): Promise<{ feed: Feed }> {
+    return this.request(`/api/feeds/${feedId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   async deleteFeed(feedId: string): Promise<{ message: string }> {
     return this.request(`/api/feeds/${feedId}`, { method: 'DELETE' });
   }
@@ -61,9 +75,18 @@ export class YubhubApiClient {
     return this.request(`/api/jobs/${jobId}`);
   }
 
+  // Account management
+  async deleteAccount(): Promise<{ ok: boolean }> {
+    return this.request('/api/account', { method: 'DELETE' });
+  }
+
   // Schedule management
   async getFeedSchedule(feedId: string): Promise<FeedSchedule> {
     return this.request(`/api/feeds/${feedId}/schedule`);
+  }
+
+  async retryFailedJobs(feedId: string): Promise<{ message: string; feedId: string; enrichQueued: number; scrapeQueued: number }> {
+    return this.request(`/api/feeds/${feedId}/jobs/retry-failed`, { method: 'POST' });
   }
 
   async updateFeedSchedule(
@@ -75,5 +98,34 @@ export class YubhubApiClient {
       method: 'PATCH',
       body: JSON.stringify({ enabled, intervalDays }),
     });
+  }
+
+  // Public stats endpoints (no auth required, but request() adds headers anyway — harmless)
+  async getStatsOverview(): Promise<{ data: StatsOverview }> {
+    return this.request('/stats/overview');
+  }
+
+  async getTopCompanies(): Promise<{ data: TopCompany[] }> {
+    return this.request('/stats/top-companies');
+  }
+
+  async getCategories(): Promise<{ data: CategoryStat[] }> {
+    return this.request('/stats/categories');
+  }
+
+  async getTopTitles(): Promise<{ data: TitleStat[] }> {
+    return this.request('/stats/top-titles');
+  }
+
+  async getTitleTrends(): Promise<{ data: TitleTrend[] }> {
+    return this.request('/stats/title-trends');
+  }
+
+  async getWorkArrangements(): Promise<{ data: ArrangementStat[] }> {
+    return this.request('/stats/work-arrangements');
+  }
+
+  async getExperienceLevels(): Promise<{ data: ExperienceStat[] }> {
+    return this.request('/stats/experience-levels');
   }
 }

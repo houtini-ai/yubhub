@@ -27,11 +27,13 @@ function getConfig(): YubhubConfig {
   const adminApiUrl = process.env.YUBHUB_ADMIN_API_URL || process.env.YUBNUB_ADMIN_API_URL ||
     'https://yubnub-admin-api-staging.fluidjobs.workers.dev';
 
+  const apiKey = process.env.YUBHUB_API_KEY;
+
   if (!userId) {
     throw new Error('YUBHUB_USER_ID environment variable is required');
   }
 
-  return { userId, adminApiUrl };
+  return { userId, adminApiUrl, apiKey };
 }
 
 function createFeedDashboardHTML(feed: Feed, stats: FeedStats): string {
@@ -301,7 +303,7 @@ class YubhubMCPServer {
 
   constructor() {
     const config = getConfig();
-    this.apiClient = new YubhubApiClient(config.adminApiUrl, config.userId);
+    this.apiClient = new YubhubApiClient(config.adminApiUrl, config.userId, config.apiKey);
 
     this.server = new Server(
       {
@@ -414,6 +416,37 @@ class YubhubMCPServer {
               feedId: {
                 type: 'string',
                 description: 'Feed ID to run'
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'update_feed',
+          description: 'Update a feed\'s name, tag, or source URLs. Use tag to group feeds by site for filtering on the dashboard.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to update'
+              },
+              name: {
+                type: 'string',
+                description: 'New feed name (optional)'
+              },
+              tag: {
+                type: 'string',
+                description: 'Tag for grouping/filtering feeds (optional, set to empty string to clear)'
+              },
+              careersUrl: {
+                type: 'string',
+                description: 'New careers page URL (optional)'
+              },
+              exampleJobUrl: {
+                type: 'string',
+                description: 'New example job URL (optional, set to empty string to clear)'
               }
             },
             required: ['feedId'],
@@ -536,6 +569,93 @@ class YubhubMCPServer {
             required: ['jobId'],
             additionalProperties: false
           }
+        },
+        {
+          name: 'retry_failed_jobs',
+          description: 'Retry failed jobs for a feed. Jobs that failed during scraping (no content) are re-queued for scraping. Jobs that failed during enrichment (have content) are re-queued for enrichment.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              feedId: {
+                type: 'string',
+                description: 'Feed ID to retry failed jobs for'
+              }
+            },
+            required: ['feedId'],
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'delete_account',
+          description: 'Permanently delete the user account and all associated data (feeds, jobs, usage logs). Cancels any active Stripe subscription. This action cannot be undone.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_stats_overview',
+          description: 'Get high-level statistics: total enriched jobs, companies, and active feeds.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_top_companies',
+          description: 'Get top companies by enriched job count, with recent activity (last 7d and 30d).',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_categories',
+          description: 'Get job counts by category/sector with experience level breakdown (entry, mid, senior).',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_top_titles',
+          description: 'Get the most common job titles by volume (top 30).',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_title_trends',
+          description: 'Get titles gaining or losing demand — compares the last 2 weeks vs prior 2 weeks.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_work_arrangements',
+          description: 'Get work arrangement distribution (remote, hybrid, onsite, etc.).',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'get_experience_levels',
+          description: 'Get experience level distribution (entry, mid, senior, etc.).',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
         }
       ]
     }));
@@ -563,6 +683,9 @@ class YubhubMCPServer {
           case 'trigger_feed_run':
             return await this.triggerFeedRun(args as any);
 
+          case 'update_feed':
+            return await this.updateFeed(args as any);
+
           case 'delete_feed':
             return await this.deleteFeed(args as any);
 
@@ -583,6 +706,33 @@ class YubhubMCPServer {
 
           case 'get_job':
             return await this.getJob(args as any);
+
+          case 'retry_failed_jobs':
+            return await this.retryFailedJobs(args as any);
+
+          case 'delete_account':
+            return await this.deleteAccount();
+
+          case 'get_stats_overview':
+            return await this.getStatsOverview();
+
+          case 'get_top_companies':
+            return await this.getTopCompanies();
+
+          case 'get_categories':
+            return await this.getCategories();
+
+          case 'get_top_titles':
+            return await this.getTopTitles();
+
+          case 'get_title_trends':
+            return await this.getTitleTrends();
+
+          case 'get_work_arrangements':
+            return await this.getWorkArrangements();
+
+          case 'get_experience_levels':
+            return await this.getExperienceLevels();
 
           default:
             throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -736,6 +886,35 @@ ${feedDetails.feed.example_job_url ? `**Example Job URL**: ${feedDetails.feed.ex
     };
   }
 
+  private async updateFeed({ feedId, name, tag, careersUrl, exampleJobUrl }: { feedId: string; name?: string; tag?: string; careersUrl?: string; exampleJobUrl?: string }) {
+    const data: { name?: string; tag?: string | null; careersUrl?: string; exampleJobUrl?: string | null } = {};
+    if (name !== undefined) data.name = name;
+    if (tag !== undefined) data.tag = tag === '' ? null : tag;
+    if (careersUrl !== undefined) data.careersUrl = careersUrl;
+    if (exampleJobUrl !== undefined) data.exampleJobUrl = exampleJobUrl === '' ? null : exampleJobUrl;
+
+    const result = await this.apiClient.updateFeed(feedId, data);
+    const feed = result.feed;
+
+    const changes: string[] = [];
+    if (name !== undefined) changes.push(`Name → "${feed.name}"`);
+    if (tag !== undefined) changes.push(`Tag → ${feed.tag ? `"${feed.tag}"` : '(cleared)'}`);
+    if (careersUrl !== undefined) changes.push(`Careers URL → ${feed.careers_url}`);
+    if (exampleJobUrl !== undefined) changes.push(`Example Job URL → ${feed.example_job_url || '(cleared)'}`);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Feed updated successfully
+
+**Feed ID**: \`${feedId}\`
+**Changes**: ${changes.join(', ')}`,
+        },
+      ],
+    };
+  }
+
   private async deleteFeed({ feedId }: { feedId: string }) {
     await this.apiClient.getFeedDetails(feedId);
     await this.apiClient.deleteFeed(feedId);
@@ -875,6 +1054,161 @@ This feed will no longer run automatically. Use "Trigger Feed Run" to run it man
           text: formatJobDetail(job),
         },
       ],
+    };
+  }
+
+  private async retryFailedJobs({ feedId }: { feedId: string }) {
+    const result = await this.apiClient.retryFailedJobs(feedId);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Failed jobs queued for retry
+
+**Feed ID**: \`${feedId}\`
+**Scraping retries**: ${result.scrapeQueued} (jobs without content — re-scraping)
+**Enrichment retries**: ${result.enrichQueued} (jobs with content — re-enriching)
+
+Jobs will be processed in the background. Check status with list_jobs.`,
+        },
+      ],
+    };
+  }
+
+  private async deleteAccount() {
+    await this.apiClient.deleteAccount();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Account deleted successfully. All feeds, jobs, and personal data have been permanently removed.`,
+        },
+      ],
+    };
+  }
+
+  // --- Public stats tools (no auth required) ---
+
+  private async getStatsOverview() {
+    const { data } = await this.apiClient.getStatsOverview();
+    return {
+      content: [{
+        type: 'text',
+        text: `**Job Market Overview**
+
+| Metric | Value |
+|--------|-------|
+| Total enriched jobs | ${data.totalJobs.toLocaleString()} |
+| Companies | ${data.totalCompanies.toLocaleString()} |
+| Active feeds | ${data.totalFeeds.toLocaleString()} |`,
+      }],
+    };
+  }
+
+  private async getTopCompanies() {
+    const { data } = await this.apiClient.getTopCompanies();
+    const rows = data.map(c =>
+      `| ${c.company} | ${c.total_jobs} | ${c.jobs_last_7d} | ${c.jobs_last_30d} |`
+    ).join('\n');
+    return {
+      content: [{
+        type: 'text',
+        text: `**Top Companies by Job Count**
+
+| Company | Total | Last 7d | Last 30d |
+|---------|-------|---------|----------|
+${rows}`,
+      }],
+    };
+  }
+
+  private async getCategories() {
+    const { data } = await this.apiClient.getCategories();
+    const rows = data.map(c =>
+      `| ${c.category} | ${c.count} | ${c.entry_count} | ${c.mid_count} | ${c.senior_count} |`
+    ).join('\n');
+    return {
+      content: [{
+        type: 'text',
+        text: `**Job Categories with Experience Breakdown**
+
+| Category | Total | Entry | Mid | Senior |
+|----------|-------|-------|-----|--------|
+${rows}`,
+      }],
+    };
+  }
+
+  private async getTopTitles() {
+    const { data } = await this.apiClient.getTopTitles();
+    const rows = data.map(t => `| ${t.title} | ${t.count} |`).join('\n');
+    return {
+      content: [{
+        type: 'text',
+        text: `**Most Common Job Titles**
+
+| Title | Count |
+|-------|-------|
+${rows}`,
+      }],
+    };
+  }
+
+  private async getTitleTrends() {
+    const { data } = await this.apiClient.getTitleTrends();
+    const rows = data.map(t => {
+      const arrow = t.change > 0 ? '↑' : t.change < 0 ? '↓' : '→';
+      return `| ${t.title} | ${t.recent_count} | ${t.prior_count} | ${arrow} ${t.change > 0 ? '+' : ''}${t.change} |`;
+    }).join('\n');
+    return {
+      content: [{
+        type: 'text',
+        text: `**Title Trends (last 14d vs prior 14d)**
+
+| Title | Recent | Prior | Change |
+|-------|--------|-------|--------|
+${rows}`,
+      }],
+    };
+  }
+
+  private async getWorkArrangements() {
+    const { data } = await this.apiClient.getWorkArrangements();
+    const total = data.reduce((s, a) => s + a.count, 0);
+    const rows = data.map(a => {
+      const pct = total > 0 ? ((a.count / total) * 100).toFixed(1) : '0';
+      return `| ${a.arrangement} | ${a.count} | ${pct}% |`;
+    }).join('\n');
+    return {
+      content: [{
+        type: 'text',
+        text: `**Work Arrangement Distribution**
+
+| Arrangement | Count | % |
+|-------------|-------|---|
+${rows}`,
+      }],
+    };
+  }
+
+  private async getExperienceLevels() {
+    const { data } = await this.apiClient.getExperienceLevels();
+    const total = data.reduce((s, e) => s + e.count, 0);
+    const rows = data.map(e => {
+      const pct = total > 0 ? ((e.count / total) * 100).toFixed(1) : '0';
+      return `| ${e.level} | ${e.count} | ${pct}% |`;
+    }).join('\n');
+    return {
+      content: [{
+        type: 'text',
+        text: `**Experience Level Distribution**
+
+| Level | Count | % |
+|-------|-------|---|
+${rows}`,
+      }],
     };
   }
 
