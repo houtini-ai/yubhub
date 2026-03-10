@@ -308,7 +308,7 @@ class YubhubMCPServer {
     this.server = new Server(
       {
         name: 'yubhub-mcp',
-        version: '2.3.0',
+        version: '2.3.1',
       },
       {
         capabilities: {

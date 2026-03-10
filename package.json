@@ -1,6 +1,6 @@
 {
   "name": "@houtini/yubhub",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "MCP server for YubHub — discover, enrich and publish jobs from career pages. Manage feeds, monitor pipelines and view stats through Claude, Cursor or any MCP client.",
   "type": "module",
   "bin": {

@@ -14,7 +14,7 @@ export class YubhubApiClient {
       'X-User-ID': this.userId,
     };
     if (this.apiKey) {
-      headers['X-API-Key'] = this.apiKey;
+      headers['Authorization'] = `Bearer ${this.apiKey}`;
     }
     const response = await fetch(url, {
       ...options,
