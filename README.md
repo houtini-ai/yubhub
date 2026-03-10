@@ -1,73 +1,191 @@
-# Yubhub MCP
+<p align="center">
+  <img src="logo.jpg" alt="YubHub" width="120" />
+</p>
 
-MCP server for managing job feeds — discover, enrich, and publish jobs from career pages.
+<h1 align="center">YubHub MCP Server</h1>
 
-## Setup
+<p align="center">
+  Turn any careers page into a structured job feed. Straight from Claude, Cursor or any MCP client.
+</p>
 
-```bash
-npm install
-npm run build
-```
+<p align="center">
+  <a href="https://www.npmjs.com/package/@houtini/yubhub"><img src="https://img.shields.io/npm/v/@houtini/yubhub.svg" alt="npm version" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
+  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-brightgreen.svg" alt="MCP Compatible" /></a>
+  <a href="https://smithery.ai/server/@houtini/yubhub"><img src="https://smithery.ai/badge/@houtini/yubhub" alt="Smithery" /></a>
+</p>
 
-### Claude Desktop Configuration
+---
 
-Add to `%APPDATA%\Claude\claude_desktop_config.json`:
+## Quick start
+
+You'll need a [YubHub account](https://yubhub.co) first. Grab your **User ID** (and optionally an API key) from the [account page](https://yubhub.co/dashboard/account).
+
+### Claude Desktop
+
+Open your Claude Desktop config file:
+
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+Add this block inside `"mcpServers"`:
 
 ```json
 {
   "mcpServers": {
     "yubhub": {
-      "command": "node",
-      "args": ["C:\\mcp\\yubhub-mcp\\dist\\index.js"],
+      "command": "npx",
+      "args": ["-y", "@houtini/yubhub"],
       "env": {
-        "YUBHUB_USER_ID": "1625",
-        "YUBHUB_ADMIN_API_URL": "https://yubnub-admin-api-staging.fluidjobs.workers.dev"
+        "YUBHUB_USER_ID": "your-user-id"
       }
     }
   }
 }
 ```
 
-Restart Claude Desktop after updating the config.
+Restart Claude Desktop. That's it. Ask Claude to "list my YubHub feeds" and you should see your data come back.
+
+### Cursor / VS Code
+
+Same idea. Drop the config into your MCP settings and point it at `npx -y @houtini/yubhub`.
+
+### With an API key
+
+If you're on a paid plan and want authenticated access, add your API key to the env block:
+
+```json
+{
+  "env": {
+    "YUBHUB_USER_ID": "your-user-id",
+    "YUBHUB_API_KEY": "yh_your_api_key_here"
+  }
+}
+```
+
+## What it does
+
+YubHub watches careers pages. Point it at a company's jobs URL, and it will discover every open role, scrape the listings, enrich them with AI (title normalisation, category tagging, salary extraction, company research) and publish them as an XML feed.
+
+This MCP server gives you full control over that pipeline from inside your AI assistant. Create feeds, trigger runs, check on jobs, view dashboards, browse market stats. No browser tab required.
+
+### The pipeline
+
+```
+Careers page URL
+  → Discovery (ATS API / sitemap / crawl)
+    → Scraping (page content extraction)
+      → Enrichment (AI structuring + company research)
+        → XML feed (ready for job boards, aggregators, your own site)
+```
+
+Supported ATS platforms include Greenhouse, Lever, Workable, Workday, Oracle HCM, SmartRecruiters, Ashby, Pinpoint, Phenom and more. For platforms with public APIs (Greenhouse, Lever, Workable, Pinpoint), discovery skips scraping entirely and goes straight to enrichment.
 
 ## Tools
 
-| Tool | Description |
+21 tools across four areas.
+
+### Feed management
+
+| Tool | What it does |
 |------|-------------|
-| `list_feeds` | List all job feeds |
-| `create_feed` | Create a new feed from a careers page URL |
-| `get_feed` | Get feed details and statistics |
-| `show_feed_dashboard` | Interactive single-feed dashboard |
-| `show_all_feeds_dashboard` | Full dashboard with all feeds, stats, sorting, and XML links |
-| `trigger_feed_run` | Start job discovery for a feed |
-| `delete_feed` | Delete a feed and all its jobs |
-| `delete_jobs` | Delete all jobs for a feed |
-| `list_jobs` | List jobs for a feed (filterable by status) |
-| `get_job` | Get detailed job info including enrichment data |
-| `get_feed_schedule` | Check auto-run schedule for a feed |
-| `enable_feed_auto_run` | Enable automatic periodic runs |
-| `disable_feed_auto_run` | Disable automatic runs |
+| `list_feeds` | Get all your job feeds |
+| `create_feed` | Create a feed from a careers page URL |
+| `get_feed` | Feed details including run history and job counts |
+| `show_feed_dashboard` | Interactive visual dashboard for a single feed |
+| `show_all_feeds_dashboard` | Overview dashboard with all feeds, stats and XML links |
+| `trigger_feed_run` | Start job discovery now |
+| `update_feed` | Change feed name, tag or source URLs |
+| `delete_feed` | Remove a feed and all its jobs |
+| `delete_jobs` | Clear all jobs for a feed (keeps the feed) |
 
-## Environment Variables
+### Scheduling
 
-| Variable | Required | Default |
-|----------|----------|---------|
-| `YUBHUB_USER_ID` | Yes | — |
-| `YUBHUB_ADMIN_API_URL` | No | `https://yubnub-admin-api-staging.fluidjobs.workers.dev` |
+| Tool | What it does |
+|------|-------------|
+| `get_feed_schedule` | Check auto-run schedule and next run time |
+| `enable_feed_auto_run` | Turn on automatic runs (default: weekly) |
+| `disable_feed_auto_run` | Turn off automatic runs |
 
-## Project Structure
+### Jobs
+
+| Tool | What it does |
+|------|-------------|
+| `list_jobs` | List jobs for a feed, optionally filtered by status |
+| `get_job` | Full job details: title, company, location, salary, skills, description |
+| `retry_failed_jobs` | Re-queue failed jobs for another attempt |
+
+### Market statistics
+
+| Tool | What it does |
+|------|-------------|
+| `get_stats_overview` | High-level numbers: total jobs, companies, active feeds |
+| `get_top_companies` | Companies ranked by job count with recent activity |
+| `get_categories` | Job counts by sector with experience level breakdown |
+| `get_top_titles` | Most common job titles by volume |
+| `get_title_trends` | Titles gaining or losing demand (2-week comparison) |
+| `get_work_arrangements` | Remote vs hybrid vs onsite distribution |
+| `get_experience_levels` | Entry, mid, senior level distribution |
+
+## Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `YUBHUB_USER_ID` | Yes | Your YubHub user ID |
+| `YUBHUB_API_KEY` | No | API key for authenticated access (paid plans) |
+| `YUBHUB_ADMIN_API_URL` | No | API endpoint (defaults to `https://api.yubhub.co`) |
+
+## Example conversation
+
+> **You:** Create a feed for Mercedes F1 careers at https://www.mercedesamgf1.com/careers
+>
+> **Claude:** Done. Feed created with ID `feed_abc123`. Want me to trigger a run?
+>
+> **You:** Yes please.
+>
+> **Claude:** Discovery started. I'll check back in a couple of minutes.
+>
+> **You:** How did it go?
+>
+> **Claude:** Found 47 jobs. 42 enriched successfully, 5 still processing. Here's a breakdown by category...
+
+## Development
+
+```bash
+git clone https://github.com/houtini-ai/yubhub.git
+cd yubhub
+npm install
+npm run build
+```
+
+The server compiles TypeScript to `dist/` and runs as a stdio MCP server. Source lives in `src/`:
 
 ```
-yubhub-mcp/
-├── src/
-│   ├── index.ts                # MCP server + tool handlers
-│   ├── api-client.ts           # REST API client
-│   ├── dashboard-generator.ts  # React dashboard HTML generator
-│   └── types.ts                # TypeScript interfaces
-├── package.json
-└── tsconfig.json
+src/
+├── index.ts                # MCP server, tool definitions and handlers
+├── api-client.ts           # REST client for the YubHub API
+├── dashboard-generator.ts  # React-based interactive dashboard builder
+└── types.ts                # TypeScript interfaces
 ```
+
+### Running locally
+
+```bash
+YUBHUB_USER_ID=your-id node dist/index.js
+```
+
+Or point your MCP client at the built output instead of using npx.
+
+## Contributing
+
+Issues and pull requests welcome. If you're adding a tool or changing behaviour, please test against a real YubHub account.
+
+## Links
+
+- [YubHub](https://yubhub.co) — the platform
+- [Documentation](https://yubhub.co/docs) — full docs
+- [MCP specification](https://modelcontextprotocol.io) — Model Context Protocol
 
 ## License
 
-Proprietary
+MIT — see [LICENSE](LICENSE) for details.

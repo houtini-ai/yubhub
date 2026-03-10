@@ -1,19 +1,50 @@
 {
-  "name": "yubhub-mcp",
-  "version": "2.2.0",
-  "description": "Yubhub MCP server for job feed management with dashboard UI",
+  "name": "@houtini/yubhub",
+  "version": "2.3.0",
+  "description": "MCP server for YubHub — discover, enrich and publish jobs from career pages. Manage feeds, monitor pipelines and view stats through Claude, Cursor or any MCP client.",
   "type": "module",
   "bin": {
     "yubhub-mcp": "./dist/index.js"
   },
+  "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "prepare": "npm run build"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "yubhub",
+    "job-feeds",
+    "recruitment",
+    "careers",
+    "ats",
+    "claude",
+    "ai",
+    "automation"
+  ],
+  "author": {
+    "name": "Houtini",
+    "url": "https://houtini.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/houtini-ai/yubhub.git"
+  },
+  "homepage": "https://yubhub.co",
+  "bugs": {
+    "url": "https://github.com/houtini-ai/yubhub/issues"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4",
-    "@mcp-ui/server": "^5.16.1",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@mcp-ui/server": "^6.1.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -22,5 +53,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

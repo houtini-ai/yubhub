@@ -1,0 +1,33 @@
+name: yubhub
+description: MCP server for YubHub job feed management. Discover, enrich and publish jobs from career pages.
+vendor: Houtini
+sourceUrl: https://github.com/houtini-ai/yubhub
+homepage: https://yubhub.co
+license: MIT
+runtime: node
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - YUBHUB_USER_ID
+    properties:
+      YUBHUB_USER_ID:
+        type: string
+        description: Your YubHub user ID (find it on your account page)
+      YUBHUB_API_KEY:
+        type: string
+        description: Your YubHub API key (optional, for authenticated access)
+      YUBHUB_ADMIN_API_URL:
+        type: string
+        description: YubHub API URL (defaults to https://api.yubhub.co)
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', '@houtini/yubhub'],
+      env: {
+        YUBHUB_USER_ID: config.YUBHUB_USER_ID,
+        ...(config.YUBHUB_API_KEY && { YUBHUB_API_KEY: config.YUBHUB_API_KEY }),
+        ...(config.YUBHUB_ADMIN_API_URL && { YUBHUB_ADMIN_API_URL: config.YUBHUB_ADMIN_API_URL })
+      }
+    })

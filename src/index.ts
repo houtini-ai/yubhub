@@ -25,7 +25,7 @@ function escapeHtml(str: string): string {
 function getConfig(): YubhubConfig {
   const userId = process.env.YUBHUB_USER_ID || process.env.YUBNUB_USER_ID;
   const adminApiUrl = process.env.YUBHUB_ADMIN_API_URL || process.env.YUBNUB_ADMIN_API_URL ||
-    'https://yubnub-admin-api-staging.fluidjobs.workers.dev';
+    'https://api.yubhub.co';
 
   const apiKey = process.env.YUBHUB_API_KEY;
 
@@ -308,7 +308,7 @@ class YubhubMCPServer {
     this.server = new Server(
       {
         name: 'yubhub-mcp',
-        version: '2.2.0',
+        version: '2.3.0',
       },
       {
         capabilities: {
@@ -586,15 +586,6 @@ class YubhubMCPServer {
           }
         },
         {
-          name: 'delete_account',
-          description: 'Permanently delete the user account and all associated data (feeds, jobs, usage logs). Cancels any active Stripe subscription. This action cannot be undone.',
-          inputSchema: {
-            type: 'object',
-            properties: {},
-            additionalProperties: false
-          }
-        },
-        {
           name: 'get_stats_overview',
           description: 'Get high-level statistics: total enriched jobs, companies, and active feeds.',
           inputSchema: {
@@ -709,9 +700,6 @@ class YubhubMCPServer {
 
           case 'retry_failed_jobs':
             return await this.retryFailedJobs(args as any);
-
-          case 'delete_account':
-            return await this.deleteAccount();
 
           case 'get_stats_overview':
             return await this.getStatsOverview();
@@ -1071,19 +1059,6 @@ This feed will no longer run automatically. Use "Trigger Feed Run" to run it man
 **Enrichment retries**: ${result.enrichQueued} (jobs with content — re-enriching)
 
 Jobs will be processed in the background. Check status with list_jobs.`,
-        },
-      ],
-    };
-  }
-
-  private async deleteAccount() {
-    await this.apiClient.deleteAccount();
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Account deleted successfully. All feeds, jobs, and personal data have been permanently removed.`,
         },
       ],
     };
