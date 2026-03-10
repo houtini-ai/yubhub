@@ -19,7 +19,7 @@
 
 ## Quick start
 
-You'll need a [YubHub account](https://yubhub.co) first. Grab your **User ID** (and optionally an API key) from the [account page](https://yubhub.co/dashboard/account).
+You'll need a [YubHub account](https://yubhub.co) first. Head to your [account page](https://yubhub.co/dashboard/account) to grab your **User ID** and **API key**.
 
 ### Claude Desktop
 
@@ -37,7 +37,8 @@ Add this block inside `"mcpServers"`:
       "command": "npx",
       "args": ["-y", "@houtini/yubhub"],
       "env": {
-        "YUBHUB_USER_ID": "your-user-id"
+        "YUBHUB_USER_ID": "your-user-id",
+        "YUBHUB_API_KEY": "yh_your_api_key_here"
       }
     }
   }
@@ -48,20 +49,7 @@ Restart Claude Desktop. That's it. Ask Claude to "list my YubHub feeds" and you 
 
 ### Cursor / VS Code
 
-Same idea. Drop the config into your MCP settings and point it at `npx -y @houtini/yubhub`.
-
-### With an API key
-
-If you're on a paid plan and want authenticated access, add your API key to the env block:
-
-```json
-{
-  "env": {
-    "YUBHUB_USER_ID": "your-user-id",
-    "YUBHUB_API_KEY": "yh_your_api_key_here"
-  }
-}
-```
+Same idea. Drop the config into your MCP settings and point it at `npx -y @houtini/yubhub` with the same env vars.
 
 ## What it does
 
