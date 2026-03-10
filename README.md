@@ -12,14 +12,15 @@
   <a href="https://www.npmjs.com/package/@houtini/yubhub"><img src="https://img.shields.io/npm/v/@houtini/yubhub.svg" alt="npm version" /></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-brightgreen.svg" alt="MCP Compatible" /></a>
-  <a href="https://smithery.ai/server/@houtini/yubhub"><img src="https://smithery.ai/badge/@houtini/yubhub" alt="Smithery" /></a>
+  <a href="https://www.npmjs.com/package/@houtini/yubhub"><img src="https://img.shields.io/npm/dt/@houtini/yubhub" alt="npm downloads" /></a>
+  <a href="https://snyk.io/test/github/houtini-ai/yubhub"><img src="https://snyk.io/test/github/houtini-ai/yubhub/badge.svg" alt="Known Vulnerabilities" /></a>
 </p>
 
 ---
 
 ## Quick start
 
-You'll need a [YubHub account](https://yubhub.co) first. Head to your [account page](https://yubhub.co/dashboard/account) to grab your **User ID** and **API key**.
+You'll need a [YubHub account](https://yubhub.co) first. Head to your [account page](https://yubhub.co/dashboard/account) to grab your **User ID** and **API key** (required).
 
 ### Claude Desktop
 
@@ -120,7 +121,7 @@ Supported ATS platforms include Greenhouse, Lever, Workable, Workday, Oracle HCM
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `YUBHUB_USER_ID` | Yes | Your YubHub user ID |
-| `YUBHUB_API_KEY` | No | API key for authenticated access (paid plans) |
+| `YUBHUB_API_KEY` | Yes | API key from your [account page](https://yubhub.co/dashboard/account) |
 | `YUBHUB_ADMIN_API_URL` | No | API endpoint (defaults to `https://api.yubhub.co`) |
 
 ## Example conversation
@@ -136,6 +137,8 @@ Supported ATS platforms include Greenhouse, Lever, Workable, Workday, Oracle HCM
 > **You:** How did it go?
 >
 > **Claude:** Found 47 jobs. 42 enriched successfully, 5 still processing. Here's a breakdown by category...
+
+**Tip:** For best results, provide an example job URL when creating a feed. This helps YubHub identify the URL pattern for job listings on that site, significantly improving discovery accuracy. You can pass it as the optional `exampleJobUrl` parameter in `create_feed`.
 
 ## Development
 
@@ -159,7 +162,7 @@ src/
 ### Running locally
 
 ```bash
-YUBHUB_USER_ID=your-id node dist/index.js
+YUBHUB_USER_ID=your-id YUBHUB_API_KEY=yh_your_key node dist/index.js
 ```
 
 Or point your MCP client at the built output instead of using npx.
