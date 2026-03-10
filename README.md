@@ -16,6 +16,12 @@
   <a href="https://snyk.io/test/github/houtini-ai/yubhub"><img src="https://snyk.io/test/github/houtini-ai/yubhub/badge.svg" alt="Known Vulnerabilities" /></a>
 </p>
 
+<p align="center">
+  <a href="https://glama.ai/mcp/servers/@houtini-ai/yubhub">
+    <img width="380" height="200" src="https://glama.ai/mcp/servers/@houtini-ai/yubhub/badge" alt="YubHub MCP server" />
+  </a>
+</p>
+
 ---
 
 ## Quick start
