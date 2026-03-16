@@ -33,6 +33,10 @@ function getConfig(): YubhubConfig {
     throw new Error('YUBHUB_USER_ID environment variable is required');
   }
 
+  if (!apiKey) {
+    throw new Error('YUBHUB_API_KEY environment variable is required. Get your API key at https://yubhub.co/dashboard/account');
+  }
+
   return { userId, adminApiUrl, apiKey };
 }
 
@@ -1075,9 +1079,9 @@ Jobs will be processed in the background. Check status with list_jobs.`,
 
 | Metric | Value |
 |--------|-------|
-| Total enriched jobs | ${data.totalJobs.toLocaleString()} |
-| Companies | ${data.totalCompanies.toLocaleString()} |
-| Active feeds | ${data.totalFeeds.toLocaleString()} |`,
+| Total enriched jobs | ${(data.total_jobs ?? 0).toLocaleString()} |
+| Companies | ${(data.total_companies ?? 0).toLocaleString()} |
+| Active feeds | ${(data.total_feeds ?? 0).toLocaleString()} |`,
       }],
     };
   }

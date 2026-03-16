@@ -17,8 +17,8 @@
 </p>
 
 <p align="center">
-  <a href="https://glama.ai/mcp/servers/@houtini-ai/yubhub">
-    <img width="380" height="200" src="https://glama.ai/mcp/servers/@houtini-ai/yubhub/badge" alt="YubHub MCP server" />
+  <a href="https://glama.ai/mcp/servers/houtini-ai/yub-hub-mcp-server">
+    <img width="380" height="200" src="https://glama.ai/mcp/servers/houtini-ai/yub-hub-mcp-server/badge" alt="YubHub MCP server" />
   </a>
 </p>
 

@@ -1,7 +1,7 @@
 export interface YubhubConfig {
   userId: string;
   adminApiUrl: string;
-  apiKey?: string;
+  apiKey: string;
 }
 
 export interface Feed {
@@ -67,9 +67,9 @@ export interface FeedSchedule {
 
 // Stats types (public endpoints)
 export interface StatsOverview {
-  totalJobs: number;
-  totalCompanies: number;
-  totalFeeds: number;
+  total_jobs: number;
+  total_companies: number;
+  total_feeds: number;
 }
 
 export interface TopCompany {
