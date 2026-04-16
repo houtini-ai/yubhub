@@ -13,7 +13,6 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-brightgreen.svg" alt="MCP Compatible" /></a>
   <a href="https://www.npmjs.com/package/@houtini/yubhub"><img src="https://img.shields.io/npm/dt/@houtini/yubhub" alt="npm downloads" /></a>
-  <a href="https://snyk.io/test/github/houtini-ai/yubhub"><img src="https://snyk.io/test/github/houtini-ai/yubhub/badge.svg" alt="Known Vulnerabilities" /></a>
 </p>
 
 <p align="center">
