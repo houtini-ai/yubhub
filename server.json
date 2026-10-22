@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.houtini-ai/yubhub",
+  "title": "YubHub",
+  "description": "Build job feeds from careers pages; query enriched jobs and hiring stats. Needs a YubHub API key",
+  "repository": {
+    "url": "https://github.com/houtini-ai/yubhub",
+    "source": "github"
+  },
+  "websiteUrl": "https://yubhub.co/developers/",
+  "version": "2.3.5",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@houtini/yubhub",
+      "version": "2.3.5",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "YUBHUB_USER_ID",
+          "description": "Your YubHub user ID, shown on https://yubhub.co/dashboard/account",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "YUBHUB_API_KEY",
+          "description": "YubHub API key starting yh_ (Pro Publisher plan), from https://yubhub.co/dashboard/account",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

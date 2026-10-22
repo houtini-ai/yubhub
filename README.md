@@ -16,8 +16,8 @@
 </p>
 
 <p align="center">
-  <a href="https://glama.ai/mcp/servers/houtini-ai/yub-hub-mcp-server">
-    <img width="380" height="200" src="https://glama.ai/mcp/servers/houtini-ai/yub-hub-mcp-server/badge" alt="YubHub MCP server" />
+  <a href="https://glama.ai/mcp/servers/houtini-ai/yubhub">
+    <img width="380" height="200" src="https://glama.ai/mcp/servers/houtini-ai/yubhub/badge" alt="YubHub MCP server" />
   </a>
 </p>
 
@@ -25,7 +25,9 @@
 
 ## Quick start
 
-You'll need a [YubHub account](https://yubhub.co) first. Head to your [account page](https://yubhub.co/dashboard/account) to grab your **User ID** and **API key** (required).
+Developer docs for YubHub's API, feeds and this server are at [yubhub.co/developers](https://yubhub.co/developers/).
+
+You'll need a [YubHub account](https://yubhub.co) on the Pro Publisher plan first: the server needs an API key. Head to your [account page](https://yubhub.co/dashboard/account) to grab your **User ID** and **API key** (required).
 
 ### Claude Desktop
 
@@ -77,7 +79,7 @@ Supported ATS platforms include Greenhouse, Lever, Workable, Workday, Oracle HCM
 
 ## Tools
 
-21 tools across four areas.
+22 tools across four areas.
 
 ### Feed management
 
@@ -179,7 +181,8 @@ Issues and pull requests welcome. If you're adding a tool or changing behaviour,
 ## Links
 
 - [YubHub](https://yubhub.co) — the platform
-- [Documentation](https://yubhub.co/docs) — full docs
+- [Developer docs](https://yubhub.co/developers/) — API, feeds and MCP
+- [Documentation](https://yubhub.co/docs/) — full docs
 - [MCP specification](https://modelcontextprotocol.io) — Model Context Protocol
 
 ## License
