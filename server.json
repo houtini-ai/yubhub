@@ -8,12 +8,12 @@
     "source": "github"
   },
   "websiteUrl": "https://yubhub.co/developers/",
-  "version": "2.3.5",
+  "version": "2.4.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@houtini/yubhub",
-      "version": "2.3.5",
+      "version": "2.4.0",
       "transport": {
         "type": "stdio"
       },

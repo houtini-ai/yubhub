@@ -108,3 +108,9 @@ export interface ExperienceStat {
   level: string;
   count: number;
 }
+
+export interface CityStat {
+  value: string;   // canonical city slug, as used in /jobs/city/<slug>
+  display: string; // city name
+  count: number;   // live jobs in that city
+}

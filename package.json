@@ -1,7 +1,7 @@
 {
   "name": "@houtini/yubhub",
   "mcpName": "io.github.houtini-ai/yubhub",
-  "version": "2.3.5",
+  "version": "2.4.0",
   "description": "MCP server for YubHub — discover, enrich and publish jobs from career pages. Manage feeds, monitor pipelines and view stats through Claude, Cursor or any MCP client.",
   "homepage": "https://yubhub.co/developers/",
   "type": "module",

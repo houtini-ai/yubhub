@@ -1,4 +1,4 @@
-import type { Feed, FeedDetails, Job, FeedSchedule, StatsOverview, TopCompany, CategoryStat, TitleStat, TitleTrend, ArrangementStat, ExperienceStat } from './types.js';
+import type { Feed, FeedDetails, Job, FeedSchedule, StatsOverview, TopCompany, CategoryStat, TitleStat, TitleTrend, ArrangementStat, ExperienceStat, CityStat } from './types.js';
 
 export class YubhubApiClient {
   constructor(
@@ -127,5 +127,9 @@ export class YubhubApiClient {
 
   async getExperienceLevels(): Promise<{ data: ExperienceStat[] }> {
     return this.request('/stats/experience-levels');
+  }
+
+  async getTopCities(min: number = 5): Promise<{ data: CityStat[] }> {
+    return this.request(`/stats/facets/city?min=${min}`);
   }
 }

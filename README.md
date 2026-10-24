@@ -81,7 +81,7 @@ Supported ATS platforms include Greenhouse, Lever, Workable, Workday, Oracle HCM
 
 ## Tools
 
-22 tools across four areas.
+23 tools across four areas.
 
 ### Feed management
 
@@ -115,6 +115,8 @@ Supported ATS platforms include Greenhouse, Lever, Workable, Workday, Oracle HCM
 
 ### Market statistics
 
+These read the live market numbers behind yubhub.co straight into your chat. No feed and no account needed - the stats endpoints are open, so you can ask what the market's doing before you've built a thing. Ask in plain language ("which cities are hiring most?", "what's the remote-versus-onsite split?", "which titles are gaining demand?") and the server pulls the current aggregate and hands it back as a table. The same numbers power the public stats pages on the site, so what you see here is what a jobseeker sees there.
+
 | Tool | What it does |
 |------|-------------|
 | `get_stats_overview` | High-level numbers: total jobs, companies, active feeds |
@@ -124,6 +126,7 @@ Supported ATS platforms include Greenhouse, Lever, Workable, Workday, Oracle HCM
 | `get_title_trends` | Titles gaining or losing demand (2-week comparison) |
 | `get_work_arrangements` | Remote vs hybrid vs onsite distribution |
 | `get_experience_levels` | Entry, mid, senior level distribution |
+| `get_top_cities` | Cities hiring most, ranked by live job count |
 
 ## Environment variables
 
@@ -182,11 +185,11 @@ Issues and pull requests welcome. If you're adding a tool or changing behaviour,
 
 ## Links
 
-- [YubHub](https://yubhub.co) — the platform
-- [Developer docs](https://yubhub.co/developers/) — API, feeds and MCP
-- [Documentation](https://yubhub.co/docs/) — full docs
-- [MCP specification](https://modelcontextprotocol.io) — Model Context Protocol
+- [YubHub](https://yubhub.co) - the platform
+- [Developer docs](https://yubhub.co/developers/) - API, feeds and MCP
+- [Documentation](https://yubhub.co/docs/) - full docs
+- [MCP specification](https://modelcontextprotocol.io) - Model Context Protocol
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT - see [LICENSE](LICENSE) for details.

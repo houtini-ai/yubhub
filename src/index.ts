@@ -651,6 +651,20 @@ class YubhubMCPServer {
             properties: {},
             additionalProperties: false
           }
+        },
+        {
+          name: 'get_top_cities',
+          description: 'Get the cities hiring most, ranked by live job count. Each links to /jobs/city/<slug> on yubhub.co.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              min: {
+                type: 'number',
+                description: 'Minimum live-job count for a city to be listed (default 5).'
+              }
+            },
+            additionalProperties: false
+          }
         }
       ]
     }));
@@ -725,6 +739,9 @@ class YubhubMCPServer {
 
           case 'get_experience_levels':
             return await this.getExperienceLevels();
+
+          case 'get_top_cities':
+            return await this.getTopCities(args as any);
 
           default:
             throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -1187,6 +1204,29 @@ ${rows}`,
 | Level | Count | % |
 |-------|-------|---|
 ${rows}`,
+      }],
+    };
+  }
+
+  private async getTopCities(args?: { min?: number }) {
+    const { data } = await this.apiClient.getTopCities(args?.min ?? 5);
+    // The endpoint returns every city above the threshold (sorted by count
+    // desc). Show the top 50 - the long tail isn't a "top" list.
+    const top = data.slice(0, 50);
+    const rows = top.map(c =>
+      `| ${c.display} | ${c.count} | /jobs/city/${c.value} |`
+    ).join('\n');
+    const more = data.length > top.length
+      ? `\n\n_Showing the top ${top.length} of ${data.length} cities. Raise \`min\` to narrow._`
+      : '';
+    return {
+      content: [{
+        type: 'text',
+        text: `**Cities Hiring Most (live job count)**
+
+| City | Live jobs | Page |
+|------|-----------|------|
+${rows}${more}`,
       }],
     };
   }
