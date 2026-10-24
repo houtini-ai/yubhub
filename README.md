@@ -1,4 +1,6 @@
 <p align="center">
+
+[![Socket Badge](https://socket.dev/api/badge/npm/package/@houtini/yubhub)](https://socket.dev/npm/package/@houtini/yubhub)
   <img src="logo.jpg" alt="YubHub" width="120" />
 </p>
 
