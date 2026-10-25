@@ -1,6 +1,4 @@
 <p align="center">
-
-[![Socket Badge](https://socket.dev/api/badge/npm/package/@houtini/yubhub)](https://socket.dev/npm/package/@houtini/yubhub)
   <img src="logo.jpg" alt="YubHub" width="120" />
 </p>
 
@@ -15,6 +13,7 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-brightgreen.svg" alt="MCP Compatible" /></a>
   <a href="https://www.npmjs.com/package/@houtini/yubhub"><img src="https://img.shields.io/npm/dt/@houtini/yubhub" alt="npm downloads" /></a>
+  <a href="https://socket.dev/npm/package/@houtini/yubhub"><img src="https://socket.dev/api/badge/npm/package/@houtini/yubhub" alt="Socket Badge" /></a>
 </p>
 
 <p align="center">
